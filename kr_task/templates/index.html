@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resource Gatekeeper: суть ТЗ</title>
+<style>
+*{box-sizing:border-box;accent-color:#222}
+body{font-family:Arial,sans-serif;margin:0;background:#f2f2f2;color:#2b2f33}
+header{background:#222;color:#fff;padding:14px 24px}
+header h1{margin:0;font-size:22px}header p{margin:4px 0 0;font-size:14px;opacity:.9}
+nav{display:flex;gap:6px;padding:12px 24px 0;flex-wrap:wrap}
+nav button{border:1px solid #bbb;background:#fff;color:#111;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:14px}
+nav button.on{background:#222;color:#fff;border-color:#222}
+main{max-width:1000px;margin:12px auto;padding:0 24px}
+.slide{display:none;background:#fff;border:1px solid #bbb;border-radius:12px;padding:20px 24px;min-height:430px}
+.slide.on{display:block}
+h2{margin:0 0 6px;color:#111;font-size:22px}
+.lead{color:#666;margin:0 0 16px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:760px){.cards{grid-template-columns:1fr}}
+.card{background:#ececec;border-radius:10px;padding:14px;font-size:15px}
+.card b{display:block;color:#222;margin-bottom:6px;font-size:16px}
+.switch{margin:18px 0 8px}
+.switch button{padding:8px 16px;border:1px solid #222;background:#fff;color:#222;cursor:pointer;font-size:14px}
+.switch button:first-child{border-radius:8px 0 0 8px}.switch button:last-child{border-radius:0 8px 8px 0}
+.switch button.on{background:#222;color:#fff}
+.demo{border-radius:10px;padding:14px;font-size:15px;line-height:1.6}
+.demo.bad{background:#ddd;border:1px solid #000}.demo.good{background:#ececec;border:1px solid #222}
+code{background:#fff;padding:2px 6px;border-radius:4px}
+svg{width:100%;background:#f7f7f7;border-radius:8px;border:1px dashed #bbb}
+.node rect{fill:#fff;stroke:#222;stroke-width:2;rx:8;cursor:pointer}
+.node.main rect{fill:#222}.node.main text{fill:#fff}
+.node.sel rect{stroke:#000;stroke-width:3}
+.node.hit rect{fill:#ddd;stroke:#000;stroke-width:3}.node.main.hit rect{fill:#000}
+.node text{font-size:13px;text-anchor:middle;font-weight:bold;pointer-events:none}
+line{stroke:#666;stroke-width:2;marker-end:url(#a)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0}
+.btn{background:#222;color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:14px}
+.btn.red{background:#000}
+select,input[type=text]{padding:7px 10px;border:1px solid #bbb;border-radius:6px;font-size:14px}
+.info{background:#ececec;border-radius:8px;padding:10px;font-size:14px;min-height:40px;margin-top:8px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{background:#222;color:#fff;text-align:left;padding:8px;cursor:pointer}
+td{padding:7px 8px;border-top:1px solid #ddd}
+tr:hover td{background:#f7f7f7}
+.tag{padding:2px 8px;border-radius:10px;font-size:12px;background:#ececec;color:#111}.tag.n{background:#ddd;color:#222}
+.bar{display:flex;align-items:center;gap:10px;margin:10px 0;font-size:15px}
+.bar span{width:150px}.bar div{height:26px;border-radius:5px;background:#888;transition:width .3s}
+.bar.r div{background:#000}.bar b{min-width:30px}
+input[type=range]{width:260px}
+.chk{display:block;padding:12px;margin:8px 0;background:#f7f7f7;border:1px solid #bbb;border-radius:8px;font-size:15px;cursor:pointer}
+.chk input{margin-right:10px;transform:scale(1.3)}
+.prog{height:14px;background:#ececec;border-radius:7px;overflow:hidden;margin-top:14px}
+.prog div{height:100%;background:#444;width:0;transition:width .3s}
+.foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;color:#666;font-size:13px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Resource Gatekeeper: суть технического задания</h1>
+  <p>Паттерн защиты приложения от форсированного веб-браузинга (УБИ.159). Стрелки ← → листают слайды.</p>
+</header>
+<nav id="nav"></nav>
+<main>
+
+<!-- 1. СУТЬ ТЗ -->
+<section class="slide" data-title="1. Суть ТЗ">
+  <h2>В чём суть ТЗ</h2>
+  <p class="lead">Нужно разработать паттерн, который не даёт получить скрытые страницы и файлы простым вводом адреса.</p>
+  <div class="cards">
+    <div class="card"><b>Угроза</b>УБИ.159: нарушитель вручную вводит адреса вроде /admin-panel/ или /backup.zip, а сервер их отдаёт.</div>
+    <div class="card"><b>Паттерн</b>Resource Gatekeeper: единая проверка доступа на сервере. Запрещено всё, чего нет в политике.</div>
+    <div class="card"><b>Результат</b>Скрытые ресурсы недоступны, ответ всегда одинаковый (404), перебор блокируется и пишется в журнал.</div>
+  </div>
+  <div class="switch">
+    <button id="bOff" class="on" onclick="demo(false)">Без паттерна</button><button id="bOn" onclick="demo(true)">С паттерном</button>
+  </div>
+  <div id="demo" class="demo"></div>
+</section>
+
+<!-- 2. СХЕМА -->
+<section class="slide" data-title="2. Схема">
+  <h2>Как работает механизм защиты</h2>
+  <p class="lead">Выбери сценарий и пусти запрос по схеме. Клик по блоку показывает его роль.</p>
+  <div class="row">
+    <select id="scn">
+      <option value="ok">Легитимный запрос</option>
+      <option value="brute">Перебор адресов нарушителем</option>
+      <option value="idor">Подмена ID чужого документа</option>
+    </select>
+    <button class="btn" onclick="play()">Пустить запрос</button>
+    <span id="res"></span>
+  </div>
+  <svg viewBox="0 0 700 250">
+    <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#666"/></marker></defs>
+    <line x1="130" y1="90" x2="176" y2="90"/><line x1="290" y1="90" x2="336" y2="90"/><line x1="450" y1="90" x2="496" y2="90"/>
+    <line x1="395" y1="112" x2="395" y2="166"/>
+    <g class="node" id="n-client" data-info="Клиент: пользователь или нарушитель. Нарушитель вводит адреса вручную."><rect x="20" y="68" width="110" height="44"/><text x="75" y="95">Клиент</text></g>
+    <g class="node" id="n-proxy" data-info="Proxy + WAF: ограничивает частоту запросов, всегда отвечает одинаковым 404."><rect x="180" y="68" width="110" height="44"/><text x="235" y="95">Proxy + WAF</text></g>
+    <g class="node main" id="n-guard" data-info="Access Guard (сервис защиты): сверяет маршрут и роль с политикой. Запрещено всё, что не разрешено."><rect x="340" y="68" width="110" height="44"/><text x="395" y="95">Access Guard</text></g>
+    <g class="node" id="n-app" data-info="Приложение: получает только разрешённые запросы, правил доступа в коде нет."><rect x="500" y="68" width="110" height="44"/><text x="555" y="95">Приложение</text></g>
+    <g class="node" id="n-audit" data-info="Audit &amp; Block: журнал отказов, счётчик на IP, блокировка при 20 отказах за 60 секунд."><rect x="340" y="170" width="110" height="44"/><text x="395" y="197">Audit &amp; Block</text></g>
+  </svg>
+  <div class="info" id="info">Нажми на блок схемы</div>
+</section>
+
+<!-- 3. ТАБЛИЦА ТРЕБОВАНИЙ -->
+<section class="slide" data-title="3. Требования">
+  <h2>Требования технического задания</h2>
+  <p class="lead">Фильтруй по типу, ищи по тексту, сортируй кликом по заголовку.</p>
+  <div class="row">
+    <select id="fType" onchange="draw()"><option value="">Все требования</option><option>Функциональное</option><option>Нефункциональное</option></select>
+    <input type="text" id="fText" placeholder="Поиск" oninput="draw()">
+  </div>
+  <table>
+    <thead><tr><th onclick="sortBy(0)">№</th><th onclick="sortBy(1)">Требование</th><th onclick="sortBy(2)">Тип</th><th onclick="sortBy(3)">Как проверяем</th></tr></thead>
+    <tbody id="tb"></tbody>
+  </table>
+</section>
+
+<!-- 4. ГРАФИК -->
+<section class="slide" data-title="4. График">
+  <h2>Что даёт паттерн: перебор адресов</h2>
+  <p class="lead">Нарушитель перебирает адреса. Каждый пятый адрес в модели действительно существует (скрытый ресурс).</p>
+  <div class="row">
+    <label>Попыток перебора: <b id="nv">40</b></label>
+    <input type="range" id="n" min="5" max="100" value="40" step="5" oninput="chart()">
+    <label><input type="checkbox" id="prot" checked onchange="chart()"> Паттерн включён</label>
+  </div>
+  <div id="bars"></div>
+  <div class="info" id="chartText"></div>
+</section>
+
+<!-- 5. КРИТЕРИИ ПРИЁМКИ -->
+<section class="slide" data-title="5. Приёмка">
+  <h2>Критерии приёмки</h2>
+  <p class="lead">Паттерн принят, когда выполнены все три проверки. Отмечай их галочками.</p>
+  <label class="chk"><input type="checkbox" onchange="prog()">Обход по словарю адресов не даёт ни одного ответа 200 на закрытые ресурсы</label>
+  <label class="chk"><input type="checkbox" onchange="prog()">Запрос чужого объекта по ID (подмена идентификатора) всегда возвращает 404</label>
+  <label class="chk"><input type="checkbox" onchange="prog()">После 20 отказов за 60 секунд IP блокируется, событие уходит в журнал и SIEM</label>
+  <div class="prog"><div id="pg"></div></div>
+  <p id="pt" class="lead" style="margin-top:8px">Выполнено: 0 из 3</p>
+</section>
+
+<div class="foot"><button class="btn" onclick="go(-1)">← Назад</button><span id="pos"></span><button class="btn" onclick="go(1)">Далее →</button></div>
+</main>
+
+<script>
+/* ---------- навигация ---------- */
+var slides = document.querySelectorAll('.slide'), cur = 0;
+var nav = document.getElementById('nav');
+slides.forEach(function (s, i) {
+  var b = document.createElement('button'); b.textContent = s.dataset.title; b.onclick = function () { show(i); }; nav.appendChild(b);
+});
+function show(i) {
+  cur = (i + slides.length) % slides.length;
+  slides.forEach(function (s, k) { s.classList.toggle('on', k === cur); nav.children[k].classList.toggle('on', k === cur); });
+  document.getElementById('pos').textContent = (cur + 1) + ' / ' + slides.length;
+}
+function go(d) { show(cur + d); }
+document.onkeydown = function (e) { if (e.key === 'ArrowRight') go(1); if (e.key === 'ArrowLeft') go(-1); };
+
+/* ---------- 1. было / стало ---------- */
+function demo(on) {
+  document.getElementById('bOn').classList.toggle('on', on); document.getElementById('bOff').classList.toggle('on', !on);
+  var d = document.getElementById('demo'); d.className = 'demo ' + (on ? 'good' : 'bad');
+  d.innerHTML = on
+    ? 'Нарушитель вводит <code>/admin-panel/</code> → Access Guard не находит права → ответ <b>404</b>, отказ записан в журнал. После 20 попыток IP блокируется (<b>429</b>).'
+    : 'Нарушитель вводит <code>/admin-panel/</code> → сервер не проверяет права → ответ <b>200</b>, админ-панель открыта. Так же отдаются <code>/backup.zip</code> и <code>/.git/config</code>.';
+}
+
+/* ---------- 2. схема ---------- */
+var routes = {
+  ok: { path: ['client', 'proxy', 'guard', 'app'], bad: false, text: '200: запрос разрешён политикой и дошёл до приложения.' },
+  brute: { path: ['client', 'proxy', 'guard', 'audit'], bad: true, text: '404: маршрута нет в политике. Отказ записан, счётчик +1; после порога IP блокируется.' },
+  idor: { path: ['client', 'proxy', 'guard', 'audit'], bad: true, text: '404: роль не подходит для чужого объекта. Ответ такой же, как для несуществующего адреса.' }
+};
+document.querySelectorAll('.node').forEach(function (g) {
+  g.onclick = function () {
+    document.querySelectorAll('.node').forEach(function (x) { x.classList.remove('sel'); });
+    g.classList.add('sel'); document.getElementById('info').textContent = g.dataset.info;
+  };
+});
+var timer;
+function play() {
+  var r = routes[document.getElementById('scn').value], i = 0;
+  clearTimeout(timer);
+  document.querySelectorAll('.node').forEach(function (x) { x.classList.remove('hit'); });
+  document.getElementById('res').textContent = '';
+  (function step() {
+    var n = document.getElementById('n-' + r.path[i]);
+    document.querySelectorAll('.node').forEach(function (x) { x.classList.remove('hit'); });
+    n.classList.add('hit');
+    if (++i < r.path.length) { timer = setTimeout(step, 600); }
+    else { document.getElementById('res').textContent = r.text; }
+  })();
+}
+
+/* ---------- 3. таблица ---------- */
+var reqs = [
+  ['ФТ-1', 'Запрет по умолчанию: маршрут, которого нет в политике, закрыт', 'Функциональное', 'Обход по словарю адресов'],
+  ['ФТ-2', 'Проверка на сервере по роли и владельцу объекта', 'Функциональное', 'Тест подмены ID'],
+  ['ФТ-3', 'Непредсказуемые идентификаторы (UUID вместо номеров)', 'Функциональное', 'Анализ адресов'],
+  ['ФТ-4', 'Единый ответ 404 для «нет ресурса» и «нет прав»', 'Функциональное', 'Сравнение ответов'],
+  ['ФТ-5', 'Обнаружение перебора: счётчик отказов и блокировка IP', 'Функциональное', '20 отказов за 60 с'],
+  ['ФТ-6', 'Журнал отказов (кто, что, когда) и передача в SIEM', 'Функциональное', 'Проверка журнала'],
+  ['НФТ-1', 'Задержка проверки не более 15 мс (95-й перцентиль)', 'Нефункциональное', 'Нагрузочный тест'],
+  ['НФТ-2', 'Взаимная аутентификация сервисов (mTLS)', 'Нефункциональное', 'Проверка конфигурации'],
+  ['НФТ-3', 'Не более 5 микросервисов, один отвечает за защиту', 'Нефункциональное', 'Схема архитектуры'],
+  ['НФТ-4', 'Правила доступа хранятся как код (Git)', 'Нефункциональное', 'Ревью репозитория']
+];
+var sc = -1, asc = true;
+function sortBy(c) { asc = sc === c ? !asc : true; sc = c; reqs.sort(function (a, b) { return (a[c] > b[c] ? 1 : a[c] < b[c] ? -1 : 0) * (asc ? 1 : -1); }); draw(); }
+function draw() {
+  var t = document.getElementById('fType').value, q = document.getElementById('fText').value.toLowerCase();
+  document.getElementById('tb').innerHTML = reqs.filter(function (r) {
+    return (!t || r[2] === t) && r.join(' ').toLowerCase().indexOf(q) >= 0;
+  }).map(function (r) {
+    return '<tr><td><b>' + r[0] + '</b></td><td>' + r[1] + '</td><td><span class="tag ' + (r[2][0] === 'Н' ? 'n' : '') + '">' + r[2] + '</span></td><td>' + r[3] + '</td></tr>';
+  }).join('');
+}
+
+/* ---------- 4. график ---------- */
+function chart() {
+  var n = +document.getElementById('n').value, on = document.getElementById('prot').checked, TH = 20;
+  document.getElementById('nv').textContent = n;
+  var found = Math.floor(n / 5), a200, a404, a429;
+  if (on) { a200 = 0; a404 = Math.min(n, TH); a429 = Math.max(0, n - TH); }
+  else { a200 = found; a404 = n - found; a429 = 0; }
+  var rows = [['200: ресурс получен', a200, 'r'], ['404: отказ', a404, ''], ['429: блокировка', a429, '']];
+  document.getElementById('bars').innerHTML = rows.map(function (r) {
+    return '<div class="bar ' + r[2] + '"><span>' + r[0] + '</span><div style="width:' + (r[1] / 100 * 80 + 0.5) + '%"></div><b>' + r[1] + '</b></div>';
+  }).join('');
+  document.getElementById('chartText').textContent = on
+    ? 'С паттерном нарушитель не получил ни одного ресурса. После ' + TH + ' отказов его IP блокируется, остальные ' + a429 + ' попыток получают 429.'
+    : 'Без паттерна нарушитель нашёл ' + a200 + ' скрытых ресурсов из ' + n + ' попыток.';
+}
+
+/* ---------- 5. приёмка ---------- */
+function prog() {
+  var c = document.querySelectorAll('.chk input'), k = 0;
+  c.forEach(function (x) { if (x.checked) k++; });
+  document.getElementById('pg').style.width = (k / c.length * 100) + '%';
+  document.getElementById('pt').textContent = k === c.length ? 'Все критерии выполнены: паттерн принят' : 'Выполнено: ' + k + ' из ' + c.length;
+}
+
+demo(false); draw(); chart(); show(0);
+</script>
+</body>
+</html>
